@@ -7,12 +7,15 @@ use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Form\PlayerType;
+use App\Player\Manager as PlayerManager;
+use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 /**
  * @Route("/game")
  */
 class SecurityController extends Controller
 {
+
 
     /**
      * @Route(
@@ -22,10 +25,11 @@ class SecurityController extends Controller
      *     requirements={"_locale"="en|fr|de"}
      *     )
      */
-    public function register(Request $request): Response
+    public function register(Request $request, PlayerManager $playerManager): Response
     {
         $form = $this->createForm(PlayerType::class)->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
+            $playerManager->register($form->getData());
 
             $this->addFlash('success', 'You have been successfully added to the big family of the hangman game!');
             return $this->redirectToRoute('homepage');
