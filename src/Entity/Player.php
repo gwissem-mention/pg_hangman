@@ -145,7 +145,7 @@ class Player implements UserInterface
 
     public function getRoles(): array
     {
-        return [];
+        return ['ROLE_USER'];
     }
 
     public function getSalt(): void
