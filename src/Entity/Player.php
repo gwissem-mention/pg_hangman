@@ -3,12 +3,13 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * @ORM\Entity
  * @ORM\Table(name="players")
  */
-class Player
+class Player implements UserInterface
 {
     /**
      * @ORM\Column(type="integer")
@@ -38,7 +39,7 @@ class Player
     private $password;
 
     /**
-     * @ORM\Column
+     * @ORM\Column(type="datetime")
      */
     private $dateOfBirth;
 
@@ -141,4 +142,19 @@ class Player
         $this->email = $email;
         return $this;
     }
+
+    public function getRoles(): array
+    {
+        return ['ROLE_USER'];
+    }
+
+    public function getSalt(): void
+    {
+    }
+
+    public function eraseCredentials(): void
+    {
+    }
+
+
 }
