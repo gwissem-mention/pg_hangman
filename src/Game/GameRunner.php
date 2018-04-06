@@ -3,6 +3,10 @@
 namespace App\Game;
 
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use App\Entity\Player;
+
 
 class GameRunner
 {
@@ -21,6 +25,16 @@ class GameRunner
     private $wordList;
 
     /**
+     * @var EventDispatcherInterface
+     */
+    private $dispatcher;
+
+    /**
+     * @var TokenStorageInterface
+     */
+    private $tokenStorage;
+
+    /**
      * Constructor.
      *
      * @param GameContextInterface $context
@@ -28,11 +42,15 @@ class GameRunner
      */
     public function __construct(
         GameContextInterface $context,
-        WordListInterface $wordList = null
+        WordListInterface $wordList,
+        EventDispatcherInterface $dispatcher,
+        TokenStorageInterface $tokenStorage
     )
     {
         $this->context = $context;
         $this->wordList = $wordList;
+        $this->dispatcher = $dispatcher;
+        $this->tokenStorage = $tokenStorage;
     }
 
     /**
@@ -55,6 +73,9 @@ class GameRunner
         $word = $this->wordList->getRandomWord($length);
         $game = $this->context->newGame($word);
         $this->context->save($game);
+
+        $event = new GameEvent($this->getPlayer(), $game);
+        $this->dispatcher->dispatch(Events::GAME_START, $event);
 
         return $game;
     }
@@ -113,6 +134,11 @@ class GameRunner
 
         $this->context->reset();
 
+        if ($game->isOver()) {
+            $this->dispatch($game->isWon() ? Events::GAME_WON : Events::GAME_FAILED, $game);
+            $this->dispatch(Events::GAME_OVER, $game);
+        }
+
         return $game;
     }
 
@@ -149,5 +175,22 @@ class GameRunner
     private function createNotFoundException($message)
     {
         return new NotFoundHttpException($message);
+    }
+
+    private function dispatch(string $eventName, Game $game): void
+    {
+        $this->dispatcher->dispatch($eventName, new GameEvent(
+            $this->getPlayer(),
+            $game
+        ));
+    }
+
+    private function getPlayer(): Player
+    {
+        $token = $this->tokenStorage->getToken();
+        if (null === $token || !$token->getUser() instanceof Player) {
+            throw new \Exception('No player authenticated.');
+        }
+        return $token->getUser();
     }
 }
